@@ -14,7 +14,8 @@ departmentEntries[6] = { remarks: "ID card and keys returned.", signature: "Admi
 departmentEntries[7] = { remarks: "Exit interview completed.", signature: "HR Manager" };
 
 const sampleData = {
-  companyName: "SFLT",
+  companyName: "Crest LED",
+  companySlug: "crest-led",
   employeeCode: "EMP-1042",
   employeeName: "Ayesha Khan",
   department: "Administration",
