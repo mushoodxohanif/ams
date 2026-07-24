@@ -522,7 +522,7 @@ export function EmployeesManager({
         employees={employees}
         loading={isPending}
         onEdit={openEdit}
-        onClearanceForm={openClearanceForm}
+        onClearanceForm={shiftPresetCompany === "crest-led" ? openClearanceForm : undefined}
         onViewLeaveQuota={openLeaveQuota}
         onDeactivate={handleDeactivate}
         onReactivate={handleReactivate}

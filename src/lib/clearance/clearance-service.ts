@@ -48,7 +48,7 @@ export async function getEmployeeClearancePdfData(
   }
 
   const [company] = await db
-    .select({ name: companies.name })
+    .select({ name: companies.name, slug: companies.slug })
     .from(companies)
     .where(eq(companies.id, employee.companyId))
     .limit(1);
@@ -57,10 +57,19 @@ export async function getEmployeeClearancePdfData(
     return adminFailure(404, "COMPANY_NOT_FOUND", "Employee company not found.");
   }
 
+  if (company.slug !== "crest-led") {
+    return adminFailure(
+      403,
+      "CLEARANCE_CREST_ONLY",
+      "Clearance forms are only available for Crest LED employees.",
+    );
+  }
+
   return {
     ok: true,
     data: {
       companyName: company.name,
+      companySlug: company.slug,
       employeeCode: employee.employeeCode,
       employeeName: employee.fullName,
       department: employee.department,
