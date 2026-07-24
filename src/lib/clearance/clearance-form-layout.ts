@@ -15,7 +15,6 @@ export const CLEARANCE_DEPARTMENTS = [
 ] as const;
 
 export const CLEARANCE_FINAL_SIGNATURES = [
-  "General Manager",
   "HR Manager",
   "CEO",
 ] as const;
