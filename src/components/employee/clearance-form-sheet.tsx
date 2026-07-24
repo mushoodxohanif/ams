@@ -65,7 +65,7 @@ export function ClearanceFormSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="flex w-full flex-col gap-0 overflow-hidden sm:max-w-2xl">
         <SheetHeader>
-          <SheetTitle>Crest LED clearance form</SheetTitle>
+          <SheetTitle>Employee clearance form</SheetTitle>
           <SheetDescription>
             Enter departmental remarks and signatures, then preview or download the printable PDF.
           </SheetDescription>
@@ -135,8 +135,8 @@ export function ClearanceFormSheet({
             </div>
 
             <p className="text-sm text-[#d7dceb]">
-              Preview or download the Crest LED letterhead clearance PDF. Office Manager, General
-              Manager, and Executive Director lines stay blank for wet signatures after printing.
+              Preview or download the branded clearance PDF. Office Manager, General Manager, and
+              Executive Director lines stay blank for wet signatures after printing.
             </p>
           </div>
         ) : null}

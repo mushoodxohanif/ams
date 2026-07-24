@@ -57,14 +57,6 @@ export async function getEmployeeClearancePdfData(
     return adminFailure(404, "COMPANY_NOT_FOUND", "Employee company not found.");
   }
 
-  if (company.slug !== "crest-led") {
-    return adminFailure(
-      403,
-      "CLEARANCE_CREST_ONLY",
-      "Clearance forms are only available for Crest LED employees.",
-    );
-  }
-
   return {
     ok: true,
     data: {
