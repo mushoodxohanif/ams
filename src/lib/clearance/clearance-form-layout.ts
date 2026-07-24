@@ -5,19 +5,19 @@ export type ClearanceDepartmentEntry = {
 
 export const CLEARANCE_DEPARTMENTS = [
   "Marketing Department",
-  "Media & Promotions",
+  "Design & Development",
   "Finance Department",
   "Purchase Department",
-  "MIS Department",
+  "IT Department",
   "Chairman Secretariat",
   "Administration Department",
   "Human Resource Department",
 ] as const;
 
 export const CLEARANCE_FINAL_SIGNATURES = [
-  "Office Manager",
   "General Manager",
-  "Executive Director",
+  "HR Manager",
+  "CEO",
 ] as const;
 
 export function emptyClearanceDepartmentEntries(): ClearanceDepartmentEntry[] {

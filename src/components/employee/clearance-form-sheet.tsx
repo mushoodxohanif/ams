@@ -135,8 +135,8 @@ export function ClearanceFormSheet({
             </div>
 
             <p className="text-sm text-[#d7dceb]">
-              Preview or download the branded clearance PDF. Office Manager, General Manager, and
-              Executive Director lines stay blank for wet signatures after printing.
+              Preview or download the branded clearance PDF. General Manager, HR Manager, and CEO
+              lines stay blank for wet signatures after printing.
             </p>
           </div>
         ) : null}
