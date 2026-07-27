@@ -70,7 +70,7 @@ export async function approveLeaveRequestAction(
 
 export async function rejectLeaveRequestAction(
   id: string,
-  reviewNotes?: string | null,
+  reviewNotes: string,
 ): Promise<ActionResult> {
   const session = await requireAdminSession();
   const result = await rejectLeaveRequest(session.user.id, id, reviewNotes);
@@ -78,6 +78,7 @@ export async function rejectLeaveRequestAction(
     return actionFailure(result);
   }
   revalidateLeavePaths();
+  revalidatePath("/dashboard", "layout");
   return actionSuccess();
 }
 

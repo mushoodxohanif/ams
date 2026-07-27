@@ -389,3 +389,23 @@ export const salarySheetRows = pgTable(
     index("salary_sheet_rows_import_id_idx").on(table.importId),
   ],
 );
+
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    type: text("type").notNull(),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    href: text("href"),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("notifications_user_id_created_at_idx").on(table.userId, table.createdAt),
+    index("notifications_user_id_unread_idx").on(table.userId, table.readAt),
+  ],
+);

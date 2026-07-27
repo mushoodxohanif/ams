@@ -52,7 +52,9 @@ export function LeaveDetailSheet({
               </div>
               {request.reviewNotes ? (
                 <p className="text-sm text-[#eceef5]">
-                  <span className="font-medium text-[#c8cce0]">Review notes: </span>
+                  <span className="font-medium text-[#c8cce0]">
+                    {request.status === "rejected" ? "Rejection reason: " : "Review notes: "}
+                  </span>
                   {request.reviewNotes}
                 </p>
               ) : null}

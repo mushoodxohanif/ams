@@ -5,6 +5,7 @@ import type { Session } from "next-auth";
 import { ApplicationShell } from "@/components/layout/application-shell";
 import { PendingLateRelaxationIndicator } from "@/components/layout/pending-late-relaxation-indicator";
 import { PendingLeaveIndicator } from "@/components/layout/pending-leave-indicator";
+import { NotificationsIndicatorSlot } from "@/components/notifications/notifications-indicator";
 import { ensureCrestEveningShiftEmployees } from "@/lib/admin/ensure-crest-evening-shifts";
 import { getCompanies } from "@/lib/admin/selected-company";
 import {
@@ -46,6 +47,9 @@ export default async function AppLayout({
       hasLinkedEmployee={linkedEmployee}
       companies={companies}
       selectedCompanyId={selectedCompanyId}
+      notificationsIndicator={
+        session?.user ? <NotificationsIndicatorSlot userId={session.user.id} /> : null
+      }
       leaveRequestsIndicator={
         isAdmin ? (
           <Suspense fallback={null}>

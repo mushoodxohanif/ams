@@ -12,6 +12,7 @@ import {
 } from "@/lib/attendance/company-shift";
 import { loadEmployeeShiftContext } from "@/lib/attendance/employee-shift";
 import { ENTITLED_LEAVE_TYPES, LEAVE_ENTITLEMENTS } from "./constants";
+import { leaveTypeLabel } from "./display";
 import type { LeaveApplicationPdfData } from "./leave-pdf";
 import type {
   EmployeeLeaveBalanceSummary,
@@ -25,6 +26,7 @@ import {
   countWorkingDaysForCompany,
   eachDateInRange,
 } from "./working-days";
+import { createNotificationForEmployee } from "@/lib/notifications/service";
 
 export type LeaveListItem = {
   id: string;
@@ -771,7 +773,7 @@ export async function approveLeaveRequest(
 export async function rejectLeaveRequest(
   adminUserId: string,
   id: string,
-  reviewNotes?: string | null,
+  reviewNotes: string,
 ): Promise<ServiceFailure | ServiceSuccess<LeaveListItem>> {
   const current = await loadLeaveItem(id);
   if (!current.ok) {
@@ -782,6 +784,15 @@ export async function rejectLeaveRequest(
     return adminFailure(400, "INVALID_STATUS", "Only pending leave requests can be rejected.");
   }
 
+  const reason = reviewNotes.trim();
+  if (!reason) {
+    return adminFailure(
+      400,
+      "REJECTION_REASON_REQUIRED",
+      "Please provide a reason for rejecting this leave request.",
+    );
+  }
+
   const now = new Date();
   const [updated] = await db
     .update(leaveRequests)
@@ -789,7 +800,7 @@ export async function rejectLeaveRequest(
       status: "rejected",
       reviewedByUserId: adminUserId,
       reviewedAt: now,
-      reviewNotes: reviewNotes?.trim() || null,
+      reviewNotes: reason,
       updatedAt: now,
     })
     .where(eq(leaveRequests.id, id))
@@ -805,7 +816,21 @@ export async function rejectLeaveRequest(
     return adminFailure(404, "EMPLOYEE_NOT_FOUND", "Employee not found.");
   }
 
-  return { ok: true, data: mapLeaveRow(updated, employee) };
+  const item = mapLeaveRow(updated, employee);
+
+  const typeLabel = leaveTypeLabel(item.leaveType);
+  try {
+    await createNotificationForEmployee(item.employeeId, {
+      type: "leave_rejected",
+      title: `${typeLabel} rejected`,
+      body: reason,
+      href: "/leave",
+    });
+  } catch (error) {
+    console.error("[leave] failed to create rejection notification", error);
+  }
+
+  return { ok: true, data: item };
 }
 
 async function clearLeaveFromAttendance(request: LeaveListItem): Promise<number> {

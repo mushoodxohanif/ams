@@ -17,6 +17,7 @@ type ApplicationShellProps = {
   selectedCompanyId?: string | null;
   leaveRequestsIndicator?: ReactNode;
   lateRelaxationsIndicator?: ReactNode;
+  notificationsIndicator?: ReactNode;
   children: React.ReactNode;
 };
 
@@ -27,6 +28,7 @@ export function ApplicationShell({
   selectedCompanyId = null,
   leaveRequestsIndicator = null,
   lateRelaxationsIndicator = null,
+  notificationsIndicator = null,
   children,
 }: ApplicationShellProps) {
   const pathname = usePathname();
@@ -59,11 +61,14 @@ export function ApplicationShell({
           </div>
           <header className="relative z-10 flex h-14 shrink-0 items-center gap-2 border-b border-white/10 bg-[#010c28]/80 px-3 pt-[max(0px,env(safe-area-inset-top))] backdrop-blur-md sm:h-12 sm:px-4">
             <SidebarTrigger className="-ml-0.5 size-10 touch-manipulation sm:size-9" />
-            {user.role === "admin" && companies.length > 0 && selectedCompanyId ? (
-              <div className="ml-auto min-w-0 max-w-[min(65vw,14rem)] sm:max-w-[55%]">
-                <CompanySwitcher companies={companies} selectedCompanyId={selectedCompanyId} />
-              </div>
-            ) : null}
+            <div className="ml-auto flex min-w-0 items-center gap-1 sm:gap-2">
+              {notificationsIndicator}
+              {user.role === "admin" && companies.length > 0 && selectedCompanyId ? (
+                <div className="min-w-0 max-w-[min(55vw,14rem)] sm:max-w-[14rem]">
+                  <CompanySwitcher companies={companies} selectedCompanyId={selectedCompanyId} />
+                </div>
+              ) : null}
+            </div>
           </header>
           <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain pb-[max(0px,env(safe-area-inset-bottom))]">
             {children}

@@ -24,6 +24,11 @@ const LeaveDetailSheet = dynamic(
   { loading: () => null },
 );
 
+const LeaveRejectSheet = dynamic(
+  () => import("@/components/leave/leave-reject-sheet").then((module) => module.LeaveRejectSheet),
+  { loading: () => null },
+);
+
 type LeaveManagerProps = {
   employees: SerializedEmployeeOption[];
   requests: SerializedLeaveRequest[];
@@ -44,6 +49,7 @@ export function LeaveManager({
   const [downloadPending, setDownloadPending] = useState(false);
   const [viewRequest, setViewRequest] = useState<SerializedLeaveRequest | null>(null);
   const [viewBalances, setViewBalances] = useState<LeaveBalance[]>([]);
+  const [rejectRequest, setRejectRequest] = useState<SerializedLeaveRequest | null>(null);
 
   useEffect(() => {
     if (!viewRequest) {
@@ -120,9 +126,13 @@ export function LeaveManager({
     }
   }
 
-  async function handleReject(id: string) {
-    const notes = window.prompt("Optional rejection notes:");
-    if (notes === null) {
+  function openReject(id: string) {
+    const request = requests.find((item) => item.id === id) ?? null;
+    setRejectRequest(request);
+  }
+
+  async function handleConfirmReject(reason: string) {
+    if (!rejectRequest) {
       return;
     }
 
@@ -130,16 +140,17 @@ export function LeaveManager({
 
     try {
       await toastAsync(
-        rejectLeaveRequestAction(id, notes || null).then((result) => {
+        rejectLeaveRequestAction(rejectRequest.id, reason).then((result) => {
           if (!result.ok) {
             throw new Error(result.error);
           }
         }),
         {
           loading: "Rejecting leave request…",
-          success: "Leave request rejected.",
+          success: "Leave rejected. Employee notified.",
         },
       );
+      setRejectRequest(null);
     } catch {
       // toastAsync already surfaced the error toast
     } finally {
@@ -250,7 +261,7 @@ export function LeaveManager({
         showEmployee
         onView={setViewRequest}
         onApprove={handleApprove}
-        onReject={handleReject}
+        onReject={openReject}
         onDelete={handleDelete}
         onDownloadPdf={handleDownloadPdf}
         downloadPending={downloadPending}
@@ -269,6 +280,18 @@ export function LeaveManager({
         companyName={companyName}
         balances={viewBalances}
         showBalanceCards
+      />
+
+      <LeaveRejectSheet
+        open={rejectRequest !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRejectRequest(null);
+          }
+        }}
+        request={rejectRequest}
+        submitting={actionPending}
+        onConfirm={(reason) => void handleConfirmReject(reason)}
       />
     </div>
   );
