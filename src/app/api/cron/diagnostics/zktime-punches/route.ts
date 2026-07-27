@@ -232,57 +232,59 @@ export async function GET(request: Request) {
     sampleStates: string[];
   } | null = null;
 
+  let liveBridgeError: string | null = null;
   if (live) {
-    const client = ZktimeClient.tryFromEnv();
-    if (!client) {
-      return NextResponse.json(
-        { error: "ZKTime is not configured", code: "ZKTIME_NOT_CONFIGURED" },
-        { status: 500 },
-      );
+    try {
+      const client = ZktimeClient.tryFromEnv();
+      if (!client) {
+        liveBridgeError = "ZKTime is not configured";
+      } else {
+        const since = `${fromDate} 00:00:00`;
+        const exportResult = await client.exportTransactions(since);
+        const matched = exportResult.transactions.filter((tx) =>
+          codeSet.has(normalizeCode(tx.emp_code)),
+        );
+        const withDirection = matched.map((tx) => ({
+          empCode: tx.emp_code,
+          punchTime: tx.punch_time,
+          state: tx.punch_state_display ?? "",
+          terminalSn: tx.terminal_sn ?? null,
+          direction: directionFromState(tx.punch_state_display),
+        }));
+
+        const toCutoff = `${toDate} 00:00:00`;
+        const inWindow = withDirection.filter((tx) => tx.punchTime < toCutoff);
+        const outPunches = inWindow
+          .filter((tx) => tx.direction === "out")
+          .map(({ empCode, punchTime, state, terminalSn }) => ({
+            empCode,
+            punchTime,
+            state,
+            terminalSn,
+          }));
+
+        const stateCounts = new Map<string, number>();
+        for (const tx of inWindow) {
+          const key = tx.state || "(empty)";
+          stateCounts.set(key, (stateCounts.get(key) ?? 0) + 1);
+        }
+
+        liveBridge = {
+          fetched: exportResult.transactions.length,
+          companyMatched: inWindow.length,
+          inCount: inWindow.filter((tx) => tx.direction === "in").length,
+          outCount: outPunches.length,
+          unknownCount: inWindow.filter((tx) => tx.direction === "unknown").length,
+          outPunches,
+          sampleStates: [...stateCounts.entries()]
+            .sort((left, right) => right[1] - left[1])
+            .slice(0, 12)
+            .map(([state, count]) => `${state}: ${count}`),
+        };
+      }
+    } catch (error) {
+      liveBridgeError = error instanceof Error ? error.message : "Live ZKTime export failed";
     }
-
-    const since = `${fromDate} 00:00:00`;
-    const exportResult = await client.exportTransactions(since);
-    const matched = exportResult.transactions.filter((tx) =>
-      codeSet.has(normalizeCode(tx.emp_code)),
-    );
-    const withDirection = matched.map((tx) => ({
-      empCode: tx.emp_code,
-      punchTime: tx.punch_time,
-      state: tx.punch_state_display ?? "",
-      terminalSn: tx.terminal_sn ?? null,
-      direction: directionFromState(tx.punch_state_display),
-    }));
-
-    const toCutoff = `${toDate} 00:00:00`;
-    const inWindow = withDirection.filter((tx) => tx.punchTime < toCutoff);
-    const outPunches = inWindow
-      .filter((tx) => tx.direction === "out")
-      .map(({ empCode, punchTime, state, terminalSn }) => ({
-        empCode,
-        punchTime,
-        state,
-        terminalSn,
-      }));
-
-    const stateCounts = new Map<string, number>();
-    for (const tx of inWindow) {
-      const key = tx.state || "(empty)";
-      stateCounts.set(key, (stateCounts.get(key) ?? 0) + 1);
-    }
-
-    liveBridge = {
-      fetched: exportResult.transactions.length,
-      companyMatched: inWindow.length,
-      inCount: inWindow.filter((tx) => tx.direction === "in").length,
-      outCount: outPunches.length,
-      unknownCount: inWindow.filter((tx) => tx.direction === "unknown").length,
-      outPunches,
-      sampleStates: [...stateCounts.entries()]
-        .sort((left, right) => right[1] - left[1])
-        .slice(0, 12)
-        .map(([state, count]) => `${state}: ${count}`),
-    };
   }
 
   return NextResponse.json({
@@ -301,5 +303,6 @@ export async function GET(request: Request) {
     employees: employeesSummary,
     unlinked,
     liveBridge,
+    liveBridgeError,
   });
 }
