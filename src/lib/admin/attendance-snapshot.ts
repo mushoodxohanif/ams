@@ -10,6 +10,7 @@ export type AttendanceSnapshotRow = {
   checkInAt: string | null;
   checkOutAt: string | null;
   isLate: boolean;
+  isMissedCheckout: boolean;
 };
 
 export type AttendanceSnapshot = {
@@ -18,6 +19,9 @@ export type AttendanceSnapshot = {
   activeEmployees: number;
   withCheckIn: number;
   withoutCheckIn: number;
+  withCheckOut: number;
+  missingCheckOut: number;
+  missedCheckoutFlagged: number;
   employees: AttendanceSnapshotRow[];
 };
 
@@ -43,6 +47,7 @@ export async function getAttendanceSnapshot(
       checkInAt: attendanceDays.checkInAt,
       checkOutAt: attendanceDays.checkOutAt,
       isLate: attendanceDays.isLate,
+      isMissedCheckout: attendanceDays.isMissedCheckout,
     })
     .from(attendanceDays)
     .innerJoin(employees, eq(attendanceDays.employeeId, employees.id))
@@ -68,6 +73,7 @@ export async function getAttendanceSnapshot(
         checkInAt: null,
         checkOutAt: null,
         isLate: false,
+        isMissedCheckout: false,
       };
     }
 
@@ -78,12 +84,16 @@ export async function getAttendanceSnapshot(
       checkInAt: row.checkInAt?.toISOString() ?? null,
       checkOutAt: row.checkOutAt?.toISOString() ?? null,
       isLate: row.isLate,
+      isMissedCheckout: row.isMissedCheckout,
     };
   });
 
   employeesSummary.sort((left, right) => left.fullName.localeCompare(right.fullName));
 
   const withCheckIn = employeesSummary.filter((row) => row.checkInAt);
+  const withCheckOut = withCheckIn.filter((row) => row.checkOutAt);
+  const missingCheckOut = withCheckIn.filter((row) => !row.checkOutAt);
+  const missedCheckoutFlagged = missingCheckOut.filter((row) => row.isMissedCheckout);
 
   return {
     company: company.name,
@@ -91,6 +101,9 @@ export async function getAttendanceSnapshot(
     activeEmployees: employeesSummary.length,
     withCheckIn: withCheckIn.length,
     withoutCheckIn: employeesSummary.length - withCheckIn.length,
+    withCheckOut: withCheckOut.length,
+    missingCheckOut: missingCheckOut.length,
+    missedCheckoutFlagged: missedCheckoutFlagged.length,
     employees: employeesSummary,
   };
 }
