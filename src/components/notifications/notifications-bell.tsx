@@ -1,7 +1,6 @@
 "use client";
 
 import { BellIcon } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
@@ -104,23 +103,25 @@ export function NotificationsBell({ initialUnreadCount }: NotificationsBellProps
 
   return (
     <DropdownMenu open={open} onOpenChange={handleOpenChange}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="relative size-10 touch-manipulation text-[#eceef5] hover:bg-white/10 sm:size-9"
-          aria-label={
-            unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"
-          }
-        >
-          <BellIcon className="size-5" />
-          {unreadCount > 0 ? (
-            <span className="absolute top-1.5 right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#f26b21] px-1 text-[10px] font-semibold text-white">
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </span>
-          ) : null}
-        </Button>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="relative size-10 touch-manipulation text-[#eceef5] hover:bg-white/10 sm:size-9"
+            aria-label={
+              unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"
+            }
+          />
+        }
+      >
+        <BellIcon className="size-5" />
+        {unreadCount > 0 ? (
+          <span className="absolute top-1.5 right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#f26b21] px-1 text-[10px] font-semibold text-white">
+            {unreadCount > 9 ? "9+" : unreadCount}
+          </span>
+        ) : null}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[min(92vw,22rem)]">
         <DropdownMenuLabel className="flex items-center justify-between gap-2">
@@ -147,10 +148,7 @@ export function NotificationsBell({ initialUnreadCount }: NotificationsBellProps
             <DropdownMenuItem
               key={item.id}
               className="flex cursor-pointer flex-col items-start gap-1 py-2.5"
-              onSelect={(event) => {
-                event.preventDefault();
-                void handleItemClick(item);
-              }}
+              onClick={() => void handleItemClick(item)}
             >
               <div className="flex w-full items-start justify-between gap-2">
                 <p className={`text-sm ${item.readAt ? "font-medium" : "font-semibold"}`}>
@@ -170,10 +168,8 @@ export function NotificationsBell({ initialUnreadCount }: NotificationsBellProps
           ))
         )}
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link href="/leave" className="cursor-pointer justify-center text-xs">
-            View leave requests
-          </Link>
+        <DropdownMenuItem onClick={() => router.push("/leave")} className="justify-center text-xs">
+          View leave requests
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
