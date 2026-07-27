@@ -2,10 +2,13 @@ import { and, eq, gte, inArray, lt, or, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { companies, employees, machinePunches } from "@/db/schema";
+import { ZktimeClient } from "@/lib/zktime/client";
 
 /**
  * Temporary ZKTime punch diagnostic. Remove after investigation.
  * Auth: Authorization: Bearer <DIAGNOSTIC_TOKEN>
+ *
+ * ?live=1 also pulls transactions from the ZKTime bridge since `from` midnight PKT.
  */
 const DIAGNOSTIC_TOKEN = "ams-zktime-diag-2026-07-24-xorora";
 
@@ -15,6 +18,17 @@ function punchDirection(rawPunchAt: string | null): "in" | "out" | "unknown" {
     return "out";
   }
   if (state.includes("check in") || state === "checkin") {
+    return "in";
+  }
+  return "unknown";
+}
+
+function directionFromState(state: string | null | undefined): "in" | "out" | "unknown" {
+  const normalized = (state ?? "").trim().toLowerCase();
+  if (normalized.includes("check out") || normalized === "checkout") {
+    return "out";
+  }
+  if (normalized.includes("check in") || normalized === "checkin") {
     return "in";
   }
   return "unknown";
@@ -34,6 +48,7 @@ export async function GET(request: Request) {
   const companySlug = url.searchParams.get("company") ?? "xorora";
   const fromDate = url.searchParams.get("from") ?? "2026-07-24";
   const toDate = url.searchParams.get("to") ?? "2026-07-26";
+  const live = url.searchParams.get("live") === "1";
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fromDate) || !/^\d{4}-\d{2}-\d{2}$/.test(toDate)) {
     return NextResponse.json(
@@ -71,6 +86,7 @@ export async function GET(request: Request) {
       ...codes.map((code) => code.padStart(3, "0")),
     ]),
   ];
+  const codeSet = new Set(codeVariants.map(normalizeCode));
 
   if (employeeIds.length === 0) {
     return NextResponse.json({
@@ -201,6 +217,74 @@ export async function GET(request: Request) {
     })
     .sort((left, right) => left.fullName.localeCompare(right.fullName));
 
+  let liveBridge: {
+    fetched: number;
+    companyMatched: number;
+    inCount: number;
+    outCount: number;
+    unknownCount: number;
+    outPunches: Array<{
+      empCode: string;
+      punchTime: string;
+      state: string;
+      terminalSn: string | null;
+    }>;
+    sampleStates: string[];
+  } | null = null;
+
+  if (live) {
+    const client = ZktimeClient.tryFromEnv();
+    if (!client) {
+      return NextResponse.json(
+        { error: "ZKTime is not configured", code: "ZKTIME_NOT_CONFIGURED" },
+        { status: 500 },
+      );
+    }
+
+    const since = `${fromDate} 00:00:00`;
+    const exportResult = await client.exportTransactions(since);
+    const matched = exportResult.transactions.filter((tx) =>
+      codeSet.has(normalizeCode(tx.emp_code)),
+    );
+    const withDirection = matched.map((tx) => ({
+      empCode: tx.emp_code,
+      punchTime: tx.punch_time,
+      state: tx.punch_state_display ?? "",
+      terminalSn: tx.terminal_sn ?? null,
+      direction: directionFromState(tx.punch_state_display),
+    }));
+
+    const toCutoff = `${toDate} 00:00:00`;
+    const inWindow = withDirection.filter((tx) => tx.punchTime < toCutoff);
+    const outPunches = inWindow
+      .filter((tx) => tx.direction === "out")
+      .map(({ empCode, punchTime, state, terminalSn }) => ({
+        empCode,
+        punchTime,
+        state,
+        terminalSn,
+      }));
+
+    const stateCounts = new Map<string, number>();
+    for (const tx of inWindow) {
+      const key = tx.state || "(empty)";
+      stateCounts.set(key, (stateCounts.get(key) ?? 0) + 1);
+    }
+
+    liveBridge = {
+      fetched: exportResult.transactions.length,
+      companyMatched: inWindow.length,
+      inCount: inWindow.filter((tx) => tx.direction === "in").length,
+      outCount: outPunches.length,
+      unknownCount: inWindow.filter((tx) => tx.direction === "unknown").length,
+      outPunches,
+      sampleStates: [...stateCounts.entries()]
+        .sort((left, right) => right[1] - left[1])
+        .slice(0, 12)
+        .map(([state, count]) => `${state}: ${count}`),
+    };
+  }
+
   return NextResponse.json({
     company: company.name,
     companySlug,
@@ -216,5 +300,6 @@ export async function GET(request: Request) {
     unlinkedPunchCount: unlinked.length,
     employees: employeesSummary,
     unlinked,
+    liveBridge,
   });
 }
