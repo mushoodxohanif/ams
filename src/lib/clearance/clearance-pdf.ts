@@ -34,6 +34,8 @@ const CONTENT_WIDTH = PAGE_WIDTH - PAGE_MARGIN * 2;
 const CREST_CONTENT_TOP = 108;
 const FIELD_ROW_GAP = 18;
 const TABLE_CELL_PADDING = 6;
+/** Extra space above HR Manager / CEO signature lines */
+const FINAL_SIGNATURE_TOP_PADDING = 50;
 
 const XORORA: BrandTheme = {
   accent: "#f26b21",
@@ -352,6 +354,7 @@ export async function buildClearanceFormPdf(data: ClearanceFormPdfData): Promise
     y += 24;
 
     y = drawDepartmentTable(doc, y, data.departmentEntries, theme);
+    y += FINAL_SIGNATURE_TOP_PADDING;
 
     const sigWidth = CONTENT_WIDTH / CLEARANCE_FINAL_SIGNATURES.length - 12;
     for (let index = 0; index < CLEARANCE_FINAL_SIGNATURES.length; index++) {
